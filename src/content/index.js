@@ -1,6 +1,6 @@
 'use strict';
 
-import { walk, setCallback } from './dom';
+import { walk, zwalk, setCallback } from './dom';
 import { isActing } from './action';
 import { getActiveTab, getData, setData } from '../shared/tabs';
 import log from '../shared/logger';
@@ -64,7 +64,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 });
 
 // Add listeners
-document.addEventListener('DOMNodeInserted', walk);
+zwalk(document.body);
 walk(document.body);
 
 log('Modal blocker running.');
