@@ -1,0 +1,3 @@
+<component name="DependencyValidationManager">
+  <scope name="Chrome Extension" pattern="file[modal-blocker]:src//*&amp;&amp;!file[modal-blocker]:.idea//*&amp;&amp;!file[modal-blocker]:build//*&amp;&amp;!file[modal-blocker]:dev-env//*&amp;&amp;!file[modal-blocker]:node_modules//*" />
+</component>

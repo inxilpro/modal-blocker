@@ -1,0 +1,10 @@
+{
+  "name": "modal-blocker-src",
+  "private": true,
+  "dependencies": {
+    "react": "^0.14.8",
+    "react-dom": "^0.14.8",
+    "react-redux": "^4.4.1",
+    "redux": "^3.3.1"
+  }
+}

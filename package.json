@@ -1,28 +1,12 @@
 {
-  "name": "WebpackChromeExtension",
-  "version": "0.3.1",
-  "description": "Bootstrap playground for developing Chrome extensions with all new features like Webpack, Babel, React and almost everything you want.",
+  "name": "modal-blocker",
+  "version": "0.0.1",
+  "description": "Modal blocker",
   "private": true,
   "scripts": {
     "start": "npm run dev",
     "dev": "cross-env NODE_ENV=development babel-node ./dev-env/dev.js",
     "build": "cross-env NODE_ENV=production babel-node ./dev-env/build.js"
-  },
-  "keywords": [
-    "chrome",
-    "extension",
-    "chrome-extension",
-    "babel",
-    "webpack",
-    "react",
-    "reactjs",
-    "boilerplate",
-    "hot",
-    "reload",
-    "hmr"
-  ],
-  "dependencies": {
-    "react": "0.14.7"
   },
   "devDependencies": {
     "babel-cli": "6.4.5",
@@ -44,5 +28,6 @@
     "url-loader": "0.5.7",
     "webpack": "1.12.2",
     "webpack-dev-server": "1.12.1"
-  }
+  },
+  "dependencies": {}
 }

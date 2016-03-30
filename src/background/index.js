@@ -1,29 +1,48 @@
-import welcome from 'shared/welcome'
+'use strict';
 
-welcome('background/index.js')
+import * as tabs from './tabs';
 
-// Setting popup icon
+chrome.browserAction.onClicked.addListener(() => {
+	console.log('Clicked');
+});
 
-// When we defined browser_action
-if(chrome.browserAction) {
-  chrome.browserAction.setIcon({
-    path: require("icons/webpack-38.png")
-  })
+const blocked = new Map(); // FIXME: This will introduce memory leaks
 
-// When we defined page_action
-} else if(chrome.pageAction) {
+chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
+	var process = function() {
+		console.log(request, sender);
 
-  const showPageAction = function(tabId) {
-    chrome.pageAction.show(tabId);
+		// Get block list for tab
+		if (!blocked.has(sender.tab.id)) {
+			blocked.set(sender.tab.id, new Set());
+		}
+		const blockList = blocked.get(sender.tab.id);
 
-    chrome.pageAction.setIcon({
-      path: require("icons/webpack-38.png"),
-      tabId: tabId
-    })
-  }
+		// Handle request
+		if ('blocked' === request.action) {
+			chrome.pageAction.show(sender.tab.id);
+			blockList.add(request.ref);
+		} else if ('get_block_list' === request.action) {
+			sendResponse(blockList);
+		} else if ('unblock' === request.action) {
+			chrome.tabs.sendMessage(sender.tab.id, request, function(response) {
+				console.log(response);
+			});
+		}
+	}
 
-  // Show page action on each page update
-  chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
-    showPageAction(tabId)
-  });
-}
+	if (!sender.tab) {
+		chrome.tabs.query({
+				currentWindow: true,
+				active: true
+			}, function(tabArray) {
+				if (tabArray && tabArray[0]) {
+					sender.tab = tabArray[0];
+					process();
+				}
+			}
+		);
+	} else {
+		process();
+	}
+});
