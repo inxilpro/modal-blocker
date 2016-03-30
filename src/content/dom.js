@@ -1,14 +1,11 @@
 'use strict';
 
-const getStyle = window.document.defaultView.getComputedStyle;
-
 // Modules vars
 var zIndexBlockLevel = Infinity;
 var cb;
 
 // Set up stores
 const walked = new WeakSet();
-const whitelist = new WeakSet();
 const nodeData = new Map();
 
 export function setCallback(callback) {
@@ -16,6 +13,11 @@ export function setCallback(callback) {
 }
 
 export function walk(node) {
+	// Convert event to node
+	if (node.target) {
+		node = node.target;
+	}
+
 	// Skip non-element nodes
 	if (1 !== node.nodeType || walked.has(node)) {
 		return;
@@ -39,12 +41,17 @@ function handleChange(node) {
 		node = node.target;
 	}
 
+	// Skip changes on non-Elements
+	if (!(node instanceof Element)) {
+		return;
+	}
+
 	// Calculate everything we need
 	const winWidth = window.innerWidth;
 	const winHeight = window.innerHeight;
 	const nodeWidth = node.scrollWidth;
 	const nodeHeight = node.scrollHeight;
-	const zIndex = parseInt(getStyle(node).getPropertyValue('z-index'));
+	const zIndex = parseInt(window.document.defaultView.getComputedStyle(node).getPropertyValue('z-index'));
 
 	// Skip nodes w/o a z-index
 	if (!zIndex) {
@@ -60,7 +67,7 @@ function handleChange(node) {
 	}
 
 	// Check nodes
-	nodeData.forEach((node, zIndex) => {
+	nodeData.forEach((zIndex, node) => {
 		if (zIndex >= zIndexBlockLevel) {
 			cb(node);
 		}
@@ -84,8 +91,4 @@ export function watch(node) {
 
 	// And check right away
 	handleChange(node);
-}
-
-export function addToWhitelist(node) {
-	return whitelist.add(node);
 }

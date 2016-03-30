@@ -45,10 +45,19 @@ export default function (manifest, {buildPath}) {
 		_.forEach(manifest.icons, (iconPath, name) => processAsset(manifest.icons, name, buildPath))
 	}
 
-	// Process browser action icons
+	// Process page action icons
 	if (manifest.browser_action.default_icon && Object.keys(manifest.browser_action.default_icon).length) {
 		_.forEach(manifest.browser_action.default_icon, (iconPath, name) => processAsset(manifest.browser_action.default_icon, name, buildPath))
 	}
+
+	const addlIcons = {
+		"16": "icons/icon-16-on.png",
+		"19": "icons/icon-19-on.png",
+		"32": "icons/icon-32-on.png",
+		"38": "icons/icon-38-on.png",
+		"128": "icons/icon-128-on.png"
+	};
+	_.forEach(addlIcons, (iconPath, name) => processAsset(addlIcons, name, buildPath));
 
 	// TODO can there be more assets?
 
