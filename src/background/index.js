@@ -8,6 +8,7 @@ function updateIconForTab(tabId) {
 	log(blockCount + ' blocked for current tab');
 
 	if (!blockCount) {
+		chrome.browserAction.disable(tabId);
 		chrome.browserAction.setIcon({
 			path: {
 				"16": "$assets/icon-16.png",
@@ -17,7 +18,12 @@ function updateIconForTab(tabId) {
 				"128": "$assets/icon-128.png"
 			}
 		});
+		chrome.browserAction.setTitle({
+			tabId,
+			title: 'No modals blocked'
+		});
 	} else {
+		chrome.browserAction.enable(tabId);
 		chrome.browserAction.setIcon({
 			path: {
 				"16": "$assets/icon-16-on.png",
@@ -26,6 +32,10 @@ function updateIconForTab(tabId) {
 				"38": "$assets/icon-38-on.png",
 				"128": "$assets/icon-128-on.png"
 			}
+		});
+		chrome.browserAction.setTitle({
+			tabId,
+			title: 'Show blocked modals'
 		});
 	}
 }

@@ -1,7 +1,7 @@
 {
-  "name": "modal-blocker",
+  "name": "ModalBlocker",
   "version": "0.0.1",
-  "description": "Modal blocker",
+  "description": "A pop-up blocker for 'modal' windows (i.e. fake windows that load inside the page).",
   "private": true,
   "scripts": {
     "start": "npm run dev",

@@ -1,6 +1,6 @@
 {
+  "name": "Modal Blocker",
   "manifest_version": 2,
-  "homepage_url": "http://cmorrell.com",
   "content_scripts": [
     {
       "matches": [
@@ -22,7 +22,8 @@
     "default_icon": {
       "19": "icons/icon-19.png",
       "38": "icons/icon-38.png"
-    }
+    },
+    "default_title": "Modal Blocker"
   },
   "permissions": [
     "background",
