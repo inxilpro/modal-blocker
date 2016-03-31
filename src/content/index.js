@@ -2,12 +2,35 @@
 
 import { walk, zwalk, setCallback } from './dom';
 import { isActing } from './action';
-import { getActiveTab, getEphemeralData, setEphemeralData } from '../shared/tabs';
 import log from '../shared/logger';
+import { getState, subscribe, getDomainSettings } from '../shared/store';
 
+let enabled = true;
+
+const domain = (new URL(window.location.href)).hostname;
 const whitelist = new WeakSet();
 const blocklist = new Set();
 const previousProperties = new WeakMap();
+
+function refresh() {
+	const state = getState();
+	const mode = state.getIn(['settings', 'mode']);
+	if ('blacklist' === mode) {
+		enabled = false;
+	}
+	getDomainSettings(domain).then(settings => {
+		enabled = settings.block;
+	});
+}
+
+refresh();
+subscribe(refresh);
+
+getSettings().then(settings => {
+	if ('blacklist' === settings.mode) {
+		enabled = false;
+	}
+});
 
 setCallback(function(node) {
 	// Check if this should be ignored
@@ -41,27 +64,27 @@ setCallback(function(node) {
 });
 
 // Handle click events from button
+/*
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
-	// Only handle 'whitelist' actions
-	if (!request.action || 'whitelist' !== request.action) {
-		return;
+	switch (request.type) {
+		case 'SET_ENABLED':
+			enabled = request.payload;
+			break;
+
+		case 'WHITELIST_CURRENT':
+			blocklist.forEach(node => {
+				// Move from block list to whitelist
+				blocklist.delete(node);
+				whitelist.add(node);
+
+				// Restore props
+				const props = previousProperties.get(node);
+				node.style.display = props.display;
+			});
+			break;
 	}
-
-	const blockCount = blocklist.size;
-
-	blocklist.forEach(node => {
-		// Move from block list to whitelist
-		blocklist.delete(node);
-		whitelist.add(node);
-
-		// Restore props
-		const props = previousProperties.get(node);
-		node.style.display = props.display;
-	});
-
-	// Tell bg process how many nodes were whitelisted
-	sendResponse(blockCount);
 });
+*/
 
 // Add listeners
 zwalk(document.body);

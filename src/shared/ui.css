@@ -18,11 +18,12 @@ button {
 	vertical-align: middle;
 	touch-action: manipulation;
 	cursor: pointer;
-	border: 1px solid #dbdbdb;
+	border: 1px solid rgba(0, 0, 0, 0.25);
 	-webkit-appearance: button;
-	border-radius: 3px;
+	border-radius: 2px;
 	text-shadow: 0 1px 0 #fff;
-	background-image: linear-gradient(to bottom,#fff 0,#e0e0e0 100%);
+	background-image: -webkit-linear-gradient(#ededed, #ededed 38%, #dedede);
+	color: #444;
 }
 
 .toggled {

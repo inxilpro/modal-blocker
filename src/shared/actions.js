@@ -1,0 +1,13 @@
+'use strict';
+
+const actions = {
+	'CREATE_TAB': 'CREATE_TAB',
+	'UPDATE_TAB': 'UPDATE_TAB',
+	'DELETE_TAB': 'DELETE_TAB',
+	'ACTIVATE_TAB': 'ACTIVATE_TAB',
+	'DOMAIN_SETTINGS': 'DOMAIN_SETTINGS',
+	'GLOBAL_SETTINGS': 'GLOBAL_SETTINGS',
+	'REPLACE_STATE': 'REPLACE_STATE'
+};
+
+export default actions;

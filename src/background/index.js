@@ -1,8 +1,31 @@
 'use strict';
 
-import * as tabs from '../shared/tabs';
 import log from '../shared/logger';
+import { getTab, getDomainSettings, dispatch, getState } from '../shared/store';
 
+// Handle tab change
+chrome.tabs.onUpdated.addListener((tabId, changes, tab) => {
+	if (!tab.url) {
+		return;
+	}
+
+	const url = new URL(tab.url);
+	getDomainSettings(url.hostname).then(settings => {
+		const enabled = (false !== settings.block);
+		const message = {
+			type: 'SET_ENABLED',
+			payload: enabled
+		};
+		chrome.tabs.sendMessage(tabId, message);
+	});
+});
+
+// Pass messages to store messages
+chrome.runtime.onMessage.addListener((request, sender, cb) => {
+	dispatch(request);
+});
+
+/*
 function updateIconForTab(tabId) {
 	const blockCount = tabs.getEphemeralData(tabId, 'block_count');
 	log(blockCount + ' blocked for current tab');
@@ -70,3 +93,4 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 chrome.tabs.onActivated.addListener(({tabId, windowId}) => {
 	updateIconForTab(tabId);
 });
+*/
