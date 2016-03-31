@@ -2,7 +2,7 @@
 
 import { walk, zwalk, setCallback } from './dom';
 import { isActing } from './action';
-import { getActiveTab, getData, setData } from '../shared/tabs';
+import { getActiveTab, getEphemeralData, setEphemeralData } from '../shared/tabs';
 import log from '../shared/logger';
 
 const whitelist = new WeakSet();

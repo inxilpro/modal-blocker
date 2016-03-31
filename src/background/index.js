@@ -4,7 +4,7 @@ import * as tabs from '../shared/tabs';
 import log from '../shared/logger';
 
 function updateIconForTab(tabId) {
-	const blockCount = tabs.getData(tabId, 'block_count');
+	const blockCount = tabs.getEphemeralData(tabId, 'block_count');
 	log(blockCount + ' blocked for current tab');
 
 	if (!blockCount) {
@@ -47,7 +47,7 @@ chrome.browserAction.onClicked.addListener(() => {
 		log('Requesting whitelist for #' + tabId);
 		chrome.tabs.sendMessage(tabId, {action: 'whitelist'}, function(response) {
 			log(response + ' node(s) whitelisted');
-			tabs.setData(tabId, 'block_count', 0);
+			tabs.setEphemeralData(tabId, 'block_count', 0);
 			updateIconForTab(tabId);
 		});
 	});
@@ -62,7 +62,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 
 	// Save data to tab
 	const tabId = sender.tab.id;
-	tabs.setData(tabId, 'block_count', request.count);
+	tabs.setEphemeralData(tabId, 'block_count', request.count);
 	updateIconForTab(tabId);
 });
 
