@@ -3,8 +3,8 @@
 import { walk, zwalk, setCallback } from './dom';
 import { isActing } from './action';
 import log from '../shared/logger';
-import { getState, subscribe, getDomainSettings } from '../shared/store';
 
+let tab, mode;
 let enabled = true;
 
 const domain = (new URL(window.location.href)).hostname;
@@ -12,6 +12,20 @@ const whitelist = new WeakSet();
 const blocklist = new Set();
 const previousProperties = new WeakMap();
 
+// Listen for actions from background
+chrome.runtime.onMessage.addListener(request => {
+	log(request);
+	switch (request.type) {
+		case 'INIT':
+			tab = request.payload.tab;
+			mode = request.payload.settings.mode;
+			enabled = request.payload.domain.block;
+			console.log('enabled', enabled);
+			break;
+	}
+});
+
+/*
 function refresh() {
 	const state = getState();
 	const mode = state.getIn(['settings', 'mode']);
@@ -25,6 +39,7 @@ function refresh() {
 
 refresh();
 subscribe(refresh);
+*/
 
 setCallback(function(node) {
 	// Check if this should be ignored

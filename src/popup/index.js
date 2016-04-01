@@ -3,11 +3,10 @@
 import log from '../shared/logger';
 import React from 'react';
 import { render } from 'react-dom';
-import { getActiveTab } from '../shared/tabs';
 import '../shared/ui.css';
 import actions from '../shared/actions';
 import Immutable from 'immutable';
-import { getState, dispatch, subscribe, getDomainSettings } from '../shared/store';
+import { getTab, getDomain, shouldBlockDomain } from '../shared/store-utils';
 
 class App extends React.Component {
 	constructor(props) {
@@ -20,33 +19,65 @@ class App extends React.Component {
 	}
 
 	componentDidMount() {
-		this.refreshState();
-		subscribe(this.refreshState.bind(this));
+		const port = this.port = chrome.runtime.connect({ name: 'popup' });
+		port.onMessage.addListener(request => {
+			log(request.type, request.payload);
+			switch (request.type) {
+				case 'SET_STATE':
+					this.refreshState(Immutable.fromJS(request.payload)); // FIXME
+					break;
+
+				default:
+					log('Unknown request', request);
+					break;
+			}
+		});
+		port.postMessage({ type: 'REQUEST_STATE' });
 	}
 
-	refreshState() {
-		const store = getState();
-		if (store && store.has('active_domain')) {
-			const domain = store.get('active_domain');
-			const tab = store.get('active_tab');
-			getDomainSettings(domain).then(domainSettings => {
-				this.setState({
-					loading: false,
-					block: domainSettings.block,
-					favicon: (tab.has('favIconUrl') ? tab.get('favIconUrl') : null),
-					store,
-					domain
-				});
+	componentWillUnmount() {
+		if (this.port && this.port.disconnect) {
+			this.port.disconnect();
+		}
+	}
+
+	refreshState(state) {
+		if (state && state.has('active_domain')) {
+			const domainName = state.get('active_domain');
+			const domain = getDomain(state, domainName);
+			const tabId = state.get('active_tab');
+			const tab = getTab(state, tabId);
+			const block = shouldBlockDomain(state, domainName);
+			const mode = state.getIn(['settings', 'mode'], 'whitelist');
+
+			this.setState({
+				loading: false,
+				favicon: (tab.favIconUrl ? tab.favIconUrl : null),
+				mode,
+				block,
+				state,
+				domain
 			});
+		} else {
+			if (!this.loadTimeoutInterval) {
+				this.loadTimeoutInterval = 1;
+			}
+
+			setTimeout(() => {
+				this.port.postMessage({
+					type: actions.LOAD_ACTIVE_TAB
+				});
+			}, this.loadTimeoutInterval);
+
+			this.loadTimeoutInterval += 100;
 		}
 	}
 
 	toggleMode() {
-		const store = this.state.store;
-		const lastMode = store.getIn(['settings', 'mode']);
+		const lastMode = this.state.mode;
 		const nextMode = ('whitelist' === lastMode ? 'blacklist' : 'whitelist');
 
-		dispatch({
+		this.port.postMessage({
 			type: actions.GLOBAL_SETTINGS,
 			payload: {
 				mode: nextMode
@@ -56,44 +87,46 @@ class App extends React.Component {
 
 	toggleDomain() {
 		const domain = this.state.domain;
-		const block = this.state.block;
-		const mode = this.state.store.getIn(['settings', 'mode']);
-		let settings = {};
+		const currentlyBlocking = this.state.block;
+		const mode = this.state.mode;
 
-		if ('whitelist' === mode && block) {
-			settings.blacklisted = true;
-			settings.whitelisted = false;
-		} else if ('blacklist' === mode && !block) {
-			settings.blacklisted = false;
-			settings.whitelisted = true;
+		let blacklisted = false;
+		let whitelisted = false;
+
+		if ('whitelist' === mode && currentlyBlocking) {
+			whitelisted = true;
+		} else if ('blacklist' === mode && !currentlyBlocking) {
+			blacklisted = true;
 		} else {
-			log('Unexpected combo', mode, block);
+			log('Unexpected combo', mode, currentlyBlocking);
 		}
 
-		dispatch({
+		this.port.postMessage({
 			type: actions.DOMAIN_SETTINGS,
 			payload: {
-				domain,
-				settings
+				...domain,
+				blacklisted,
+				whitelisted
 			}
 		});
 	}
 
 	render() {
-		const loading = this.state.loading;
+		const state = this.state;
+		const loading = state.loading;
+
 		let mode = 'whitelist';
 		let block = true;
 		let domain = 'http://';
 
 		if (!loading) {
-			const store = this.state.store;
-			mode = store.getIn(['settings', 'mode']);
-			block = this.state.block;
-			domain = this.state.domain;
+			mode = state.mode;
+			block = state.block;
+			domain = state.domain.name;
 		}
 
-		const label = (block ? 'Unblock Modals' : 'Block Modals');
-		const icon = (this.state.favicon ? <img width="13" height="13" src={this.state.favicon} /> : null);
+		const label = (block ? 'Don\'t Block' : 'Block');
+		const icon = (state.favicon ? <img width="13" height="13" src={state.favicon} /> : null);
 
 		return (
 			<div>
@@ -117,26 +150,3 @@ class App extends React.Component {
 }
 
 render(<App />, document.getElementById('root'));
-
-/*
- const $modeToggle = document.getElementById('mode_toggle');
- const $pageToggleButton = document.getElementById('page_toggle_button');
-
- // Handle mode toggle
- $modeToggle.addEventListener('change', e => {
- const mode = ($modeToggle.checked ? 'whitelist' : 'blacklist');
- console.log($modeToggle.checked, mode);
- chrome.runtime.sendMessage({
- type: 'GLOBAL_SETTINGS',
- payload: {mode}
- });
- });
-
- // Handle page toggle
- $pageToggleButton.addEventListener('click', e => {
- getActiveTab().then(tab => {
- const url = new URL(tab.url);
- console.log(url.hostname);
- });
- });
- */

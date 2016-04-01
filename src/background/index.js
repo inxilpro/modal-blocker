@@ -1,32 +1,60 @@
 'use strict';
 
 import log from '../shared/logger';
-import { getDomainSettings, dispatch, getState, loadFromStorage } from '../shared/store';
+import { dispatch, getState, loadFromStorage, subscribe } from './store';
+import { getTab, getDomain } from '../shared/store-utils';
+
+// chrome.storage.sync.clear();
 
 // Load state from storage ASAP
 loadFromStorage();
 
-// Handle tab change
-chrome.tabs.onUpdated.addListener((tabId, changes, tab) => {
-	if (!tab.url) {
-		return;
-	}
+// Message bus
+chrome.runtime.onConnect.addListener(port => {
+	const passChange = state => {
+		port.postMessage({
+			type: 'SET_STATE',
+			payload: state.toJS()
+		});
+	};
+	port.onMessage.addListener(request => {
+		log(request);
+		switch (request.type) {
+			case 'REQUEST_STATE':
+				// TODO: Could be more selective about data here
+				let unsubscribe = subscribe(() => passChange(getState()));
+				port.onDisconnect.addListener(() => unsubscribe());
+				passChange(getState());
+				break;
 
-	const url = new URL(tab.url);
-	getDomainSettings(url.hostname).then(settings => {
-		const enabled = (false !== settings.block);
-		const message = {
-			type: 'SET_ENABLED',
-			payload: enabled
-		};
-		chrome.tabs.sendMessage(tabId, message);
+			default:
+				dispatch(request);
+				break;
+		}
 	});
 });
 
-// Pass messages to store messages
-chrome.runtime.onMessage.addListener((request, sender, cb) => {
-	dispatch(request);
+
+// Handle tab change
+chrome.tabs.onUpdated.addListener((tabId, changes, tab) => {
+	const state = getState();
+	getTab(state, tab.id).then(tab => {
+		if (!tab.domain) {
+			return;
+		}
+
+		const domain = getDomain(state, tab.domain);
+		chrome.tabs.sendMessage(tabId, {
+			type: 'INIT',
+			payload: {
+				settings: state.get('settings').toJS(),
+				domain,
+				tab
+			}
+		});
+	});
 });
+
 
 /*
 function updateIconForTab(tabId) {
