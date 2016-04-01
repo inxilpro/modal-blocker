@@ -26,15 +26,9 @@ function refresh() {
 refresh();
 subscribe(refresh);
 
-getSettings().then(settings => {
-	if ('blacklist' === settings.mode) {
-		enabled = false;
-	}
-});
-
 setCallback(function(node) {
 	// Check if this should be ignored
-	if (isActing() || whitelist.has(node)) {
+	if (!enabled || isActing() || whitelist.has(node)) {
 		return;
 	}
 

@@ -1,7 +1,10 @@
 'use strict';
 
 import log from '../shared/logger';
-import { getTab, getDomainSettings, dispatch, getState } from '../shared/store';
+import { getDomainSettings, dispatch, getState, loadFromStorage } from '../shared/store';
+
+// Load state from storage ASAP
+loadFromStorage();
 
 // Handle tab change
 chrome.tabs.onUpdated.addListener((tabId, changes, tab) => {

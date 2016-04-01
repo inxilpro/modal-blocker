@@ -4,6 +4,7 @@ import log from './logger';
 import actions from './actions';
 import * as Immutable from 'immutable';
 import { createStore } from 'redux';
+import { handleActions } from 'redux-actions';
 
 let loaded = false;
 
@@ -33,6 +34,9 @@ const store = createStore((state = initialState, action) => {
 				state.set('active_tab', action.payload);
 				if (action.payload.domain) {
 					state.set('active_domain', action.payload.domain);
+				} else {
+					log('No domain:', action.payload);
+					state.delete('active_domain');
 				}
 			});
 			break;
@@ -79,20 +83,25 @@ store.subscribe(() => {
 });
 
 // Load from Chrome
-chrome.storage.sync.get('state', data => {
-	if (!data.state) {
-		// Dispatch empty state
-		store.dispatch({
-			type: actions.REPLACE_STATE,
-			payload: initialState
-		});
-	} else {
-		// Dispatch state from storage
-		store.dispatch({
-			type: actions.REPLACE_STATE,
-			payload: Immutable.fromJS(JSON.parse(data.state))
-		});
+export function loadFromStorage() {
+	chrome.storage.sync.get('state', data => {
+		if (data.state) {
+			// Dispatch state from storage
+			store.dispatch({
+				type: actions.REPLACE_STATE,
+				payload: Immutable.fromJS(JSON.parse(data.state))
+			});
+		}
+	});
+}
+
+// Listen to sync changes (from other devices)
+chrome.storage.onChanged.addListener(function(changes, namespace) {
+	if ('sync' !== namespace) {
+		return;
 	}
+
+	loadFromStorage();
 });
 
 function dispatchTab(tab) {
@@ -132,6 +141,7 @@ if (chrome && chrome.tabs) {
 	// Set currently active tab
 	chrome.tabs.onActivated.addListener(({tabId, windowId}) => {
 		chrome.tabs.get(tabId, tab => {
+			log('Active tab', tab);
 			let domain;
 			if (tab.url) {
 				const url = new URL(tab.url);
@@ -170,22 +180,6 @@ function waitForLoad(cb) {
 	});
 }
 
-export function getTab(tabId) {
-	return waitForLoad(state => {
-		if (state.hasIn(['tabs', tabId])) {
-			return state.getIn(['tabs', tabId]);
-		}
-
-		// Load tab if we don't have it
-		return new Promise((resolve, reject) => {
-			chrome.tabs.get(tabId, tab => {
-				dispatchTab(tab);
-				resolve(getTab(tabId));
-			});
-		});
-	});
-}
-
 export function getDomainSettings(domain) {
 	return waitForLoad(state => {
 		const mode = state.getIn(['settings', 'mode']);
@@ -194,14 +188,11 @@ export function getDomainSettings(domain) {
 		let explicitlyWhitelisted = false;
 
 		// Load settings if we have 'em
-		if (state.hasIn(['domains', domain])) {
-			const settings = state.getIn(['domains', domain]);
-			if (true === settings.get('blacklisted')) {
-				explicitlyBlacklisted = true;
-			}
-			if (true === settings.get('whitelisted')) {
-				explicitlyWhitelisted = true;
-			}
+		if (true === state.getIn(['domains', domain, 'blacklisted'])) {
+			explicitlyBlacklisted = true;
+		}
+		if (true === state.getIn(['domains', domain, 'whitelisted'])) {
+			explicitlyWhitelisted = true;
 		}
 
 		// Block logic
@@ -211,24 +202,9 @@ export function getDomainSettings(domain) {
 			block = true;
 		}
 
-		return {block};
-	});
-}
-
-export function setDomainSettings(domain, settings = {}) {
-	return waitForLoad(state => {
-		store.dispatch({
-			type: actions.DOMAIN_SETTINGS,
-			payload: {
-				domain,
-				settings
-			}
-		});
-	});
-}
-
-export function getSettings() {
-	return waitForLoad(state => {
-		return state.get('settings');
+		return {
+			domain,
+			block
+		};
 	});
 }

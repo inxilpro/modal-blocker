@@ -28,10 +28,12 @@ class App extends React.Component {
 		const store = getState();
 		if (store && store.has('active_domain')) {
 			const domain = store.get('active_domain');
+			const tab = store.get('active_tab');
 			getDomainSettings(domain).then(domainSettings => {
 				this.setState({
 					loading: false,
 					block: domainSettings.block,
+					favicon: (tab.has('favIconUrl') ? tab.get('favIconUrl') : null),
 					store,
 					domain
 				});
@@ -52,6 +54,31 @@ class App extends React.Component {
 		});
 	}
 
+	toggleDomain() {
+		const domain = this.state.domain;
+		const block = this.state.block;
+		const mode = this.state.store.getIn(['settings', 'mode']);
+		let settings = {};
+
+		if ('whitelist' === mode && block) {
+			settings.blacklisted = true;
+			settings.whitelisted = false;
+		} else if ('blacklist' === mode && !block) {
+			settings.blacklisted = false;
+			settings.whitelisted = true;
+		} else {
+			log('Unexpected combo', mode, block);
+		}
+
+		dispatch({
+			type: actions.DOMAIN_SETTINGS,
+			payload: {
+				domain,
+				settings
+			}
+		});
+	}
+
 	render() {
 		const loading = this.state.loading;
 		let mode = 'whitelist';
@@ -66,20 +93,22 @@ class App extends React.Component {
 		}
 
 		const label = (block ? 'Unblock Modals' : 'Block Modals');
+		const icon = (this.state.favicon ? <img width="13" height="13" src={this.state.favicon} /> : null);
 
 		return (
 			<div>
 				<div id="mode_toggle_container">
 					<label>
-						<input type="checkbox" checked={mode === 'whitelist'} disabled={loading} onChange={ this.toggleMode.bind(this) } />
+						<input type="checkbox" checked={mode === 'whitelist'} disabled={loading} onChange={this.toggleMode.bind(this)} />
 						Block modals by default
 					</label>
 				</div>
 
 				<div id="page_toggle_container">
-					<button id="page_toggle_button" disabled={loading} className={block ? 'toggled' : ''}>
-						{label}<br />
-						<small>{domain}</small>
+					<button id="page_toggle_button" disabled={loading} className={block ? 'toggled' : ''} onClick={this.toggleDomain.bind(this)}>
+						{label}
+						<br />
+						<small>{icon} {domain}</small>
 					</button>
 				</div>
 			</div>
@@ -90,24 +119,24 @@ class App extends React.Component {
 render(<App />, document.getElementById('root'));
 
 /*
-const $modeToggle = document.getElementById('mode_toggle');
-const $pageToggleButton = document.getElementById('page_toggle_button');
+ const $modeToggle = document.getElementById('mode_toggle');
+ const $pageToggleButton = document.getElementById('page_toggle_button');
 
-// Handle mode toggle
-$modeToggle.addEventListener('change', e => {
-	const mode = ($modeToggle.checked ? 'whitelist' : 'blacklist');
-	console.log($modeToggle.checked, mode);
-	chrome.runtime.sendMessage({
-		type: 'GLOBAL_SETTINGS',
-		payload: {mode}
-	});
-});
+ // Handle mode toggle
+ $modeToggle.addEventListener('change', e => {
+ const mode = ($modeToggle.checked ? 'whitelist' : 'blacklist');
+ console.log($modeToggle.checked, mode);
+ chrome.runtime.sendMessage({
+ type: 'GLOBAL_SETTINGS',
+ payload: {mode}
+ });
+ });
 
-// Handle page toggle
-$pageToggleButton.addEventListener('click', e => {
-	getActiveTab().then(tab => {
-		const url = new URL(tab.url);
-		console.log(url.hostname);
-	});
-});
-*/
+ // Handle page toggle
+ $pageToggleButton.addEventListener('click', e => {
+ getActiveTab().then(tab => {
+ const url = new URL(tab.url);
+ console.log(url.hostname);
+ });
+ });
+ */
