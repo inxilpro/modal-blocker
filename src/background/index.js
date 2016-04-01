@@ -37,13 +37,16 @@ chrome.runtime.onConnect.addListener(port => {
 
 // Handle tab change
 chrome.tabs.onUpdated.addListener((tabId, changes, tab) => {
+	log('Tab ' + tabId + ' updated.');
 	const state = getState();
 	getTab(state, tab.id).then(tab => {
 		if (!tab.domain) {
+			log('No domain for current tab.');
 			return;
 		}
 
 		const domain = getDomain(state, tab.domain);
+		log('Sending INIT to tab ' + tab.id);
 		chrome.tabs.sendMessage(tabId, {
 			type: 'INIT',
 			payload: {

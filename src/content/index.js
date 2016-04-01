@@ -3,14 +3,34 @@
 import { walk, zwalk, setCallback } from './dom';
 import { isActing } from './action';
 import log from '../shared/logger';
+import { shouldBlockDomain } from '../shared/store-utils';
+import Immutable from 'immutable';
 
 let tab, mode;
 let enabled = true;
 
-const domain = (new URL(window.location.href)).hostname;
+const domainName = (new URL(window.location.href)).hostname;
 const whitelist = new WeakSet();
 const blocklist = new Set();
 const previousProperties = new WeakMap();
+
+// Listen for state
+const port = chrome.runtime.connect({ name: 'content_script' });
+port.onMessage.addListener(request => {
+	log(request.type, request.payload);
+	switch (request.type) {
+		case 'SET_STATE':
+			const state = Immutable.fromJS(request.payload);
+			enabled = shouldBlockDomain(state, domainName);
+			log('Enabled:', enabled);
+			break;
+
+		default:
+			log('Unknown request', request);
+			break;
+	}
+});
+port.postMessage({ type: 'REQUEST_STATE' });
 
 // Listen for actions from background
 chrome.runtime.onMessage.addListener(request => {
@@ -24,22 +44,6 @@ chrome.runtime.onMessage.addListener(request => {
 			break;
 	}
 });
-
-/*
-function refresh() {
-	const state = getState();
-	const mode = state.getIn(['settings', 'mode']);
-	if ('blacklist' === mode) {
-		enabled = false;
-	}
-	getDomainSettings(domain).then(settings => {
-		enabled = settings.block;
-	});
-}
-
-refresh();
-subscribe(refresh);
-*/
 
 setCallback(function(node) {
 	// Check if this should be ignored
